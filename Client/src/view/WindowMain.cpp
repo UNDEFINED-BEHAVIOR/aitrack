@@ -17,9 +17,6 @@ WindowMain::WindowMain(QWidget *parent)
 	this->conf_win = new ConfigWindow(this);
 	this->conf_win->hide();
 
-	//Shortcuts
-	this->toggle_tracking_shortcut = new QGlobalShortcut();
-
 	this->presenter = NULL;
 
 	btn_track = findChild<QPushButton*>("trackBtn");
@@ -29,13 +26,13 @@ WindowMain::WindowMain(QWidget *parent)
 	btn_config = findChild<QPushButton*>("btnConfig");
 
 	check_video_preview = findChild<QCheckBox*>("chkVideoPreview");
+	check_enable_tracking_shortcut = findChild<QCheckBox*>("ckEnableTrackingShortcut");
 	
 	connect(btn_track, SIGNAL(released()), this, SLOT(onTrackClick()));
 	connect(btn_config, SIGNAL(released()), this, SLOT(onConfigClick()));
 	connect(check_video_preview, SIGNAL(released()), this, SLOT(onSaveClick()));
+	connect(check_enable_tracking_shortcut, SIGNAL(released()), this, SLOT(onEnableTrackingShortcutClick()));
 	
-	register_shortcuts();
-
 	statusBar()->setSizeGripEnabled(false);
 }
 
@@ -44,6 +41,7 @@ WindowMain::~WindowMain()
 
 void WindowMain::closeEvent(QCloseEvent* event)
 {
+	// note: deleting nullptr has no effect
 	delete(this->toggle_tracking_shortcut);
 	this->presenter->close_program();
 }
@@ -172,6 +170,26 @@ void WindowMain::onConfigClick()
 	this->conf_win->show();
 }
 
+void WindowMain::onEnableTrackingShortcutClick()
+{
+  if (check_enable_tracking_shortcut->checkState()) {
+		if(this->toggle_tracking_shortcut == nullptr) {
+      std::cout << "Enabling tracking shortcut" << std::endl;
+      this->toggle_tracking_shortcut = new QGlobalShortcut();
+      this->toggle_tracking_shortcut->setKey(QKeySequence("Ctrl+T"));
+      connect(this->toggle_tracking_shortcut, SIGNAL(activated()), SLOT(onTrackClick()));
+		} else {
+      std::cerr << "Tracking shortcut has already been enabled!" << std::endl;
+		}
+  }
+  else {
+    std::cout << "Disabling tracking shortcut" << std::endl;
+		// note: deleting nullptr has no effect
+    delete this->toggle_tracking_shortcut;
+		this->toggle_tracking_shortcut = nullptr;
+  }
+}
+
 void WindowMain::readjust_size()
 {
 	findChild<QWidget*>("centralwidget")->adjustSize();
@@ -184,10 +202,3 @@ void WindowMain::notify(IView* self)
 	this->onSaveClick();
 }
 
-void WindowMain::register_shortcuts()
-{
-	// TODO: Unhardcode
-	this->toggle_tracking_shortcut->setKey(QKeySequence("Ctrl+T"));
-
-	connect(this->toggle_tracking_shortcut, SIGNAL(activated()), SLOT(onTrackClick()));
-}
